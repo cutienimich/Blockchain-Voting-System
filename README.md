@@ -197,22 +197,39 @@ Role-based (Admin / User)
 
 11. 🔗 System Integration Architecture
 [ Mobile App ]        [ Admin Desktop ]
+
         ↓                     ↓
+
         └──────→ [ Backend API ] ←──────┘
+
                          ↓
+
                  ┌───────────────┐
+
                  │   AI Module   │
+
                  │ Face Verify   │
+
                  │ Fraud Detect  │
+
                  └───────────────┘
+
                          ↓
+
                   [ Blockchain ]
+
                          ↓
+
                    [ Database ]
+
                          ↓
+
                 [ WebSocket Layer ]
+
                          ↓
+
                  Real-Time Updates
+
     
 13. 🗳️ Candidate Application Process
 Hybrid Approach (Recommended)
