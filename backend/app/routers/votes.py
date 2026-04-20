@@ -4,6 +4,7 @@ from app.database import get_db
 from app import models
 from app.schemas import VoteCreate, VoteResponse
 from app.dependencies import get_current_user, admin_only
+from app.blockchain import send_vote_to_blockchain
 from typing import List
 
 router = APIRouter(prefix="/votes", tags=["Votes"])
@@ -42,20 +43,27 @@ def cast_vote(
     if existing_vote:
         raise HTTPException(status_code=400, detail="You already voted in this election")
 
+    # ─── SEND TO BLOCKCHAIN ──────────────────────
+    tx_hash = send_vote_to_blockchain(
+        user_id=current_user.id,
+        election_id=data.election_id,
+        candidate_id=data.candidate_id
+    )
+
     # save vote
     vote = models.Vote(
         user_id=current_user.id,
         election_id=data.election_id,
         candidate_id=data.candidate_id,
-        transaction_hash=None,   # blockchain comes Day 8
-        is_flagged=False          # AI fraud check comes Day 13
+        transaction_hash=tx_hash,
+        is_flagged=False
     )
     db.add(vote)
     db.commit()
     db.refresh(vote)
     return vote
 
-# ─── GET RESULTS (anyone can see) ────────────────
+# ─── GET RESULTS ─────────────────────────────────
 @router.get("/{election_id}/results")
 def get_results(election_id: int, db: Session = Depends(get_db)):
     election = db.query(models.Election).filter(
