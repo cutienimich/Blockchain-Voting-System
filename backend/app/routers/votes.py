@@ -5,13 +5,15 @@ from app import models
 from app.schemas import VoteCreate, VoteResponse
 from app.dependencies import get_current_user, admin_only
 from app.blockchain import send_vote_to_blockchain
+from app.socket_manager import manager
 from typing import List
+import asyncio
 
 router = APIRouter(prefix="/votes", tags=["Votes"])
 
 # ─── CAST VOTE ───────────────────────────────────
 @router.post("/", response_model=VoteResponse)
-def cast_vote(
+async def cast_vote(
     data: VoteCreate,
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
@@ -33,7 +35,7 @@ def cast_vote(
         models.Candidate.election_id == data.election_id
     ).first()
     if not candidate:
-        raise HTTPException(status_code=404, detail="Candidate not found in this election")
+        raise HTTPException(status_code=404, detail="Candidate not found")
 
     # check already voted
     existing_vote = db.query(models.Vote).filter(
@@ -61,6 +63,33 @@ def cast_vote(
     db.add(vote)
     db.commit()
     db.refresh(vote)
+
+    # ─── GET LIVE RESULTS ────────────────────────
+    candidates = db.query(models.Candidate).filter(
+        models.Candidate.election_id == data.election_id
+    ).all()
+
+    results = []
+    for c in candidates:
+        count = db.query(models.Vote).filter(
+            models.Vote.candidate_id == c.id,
+            models.Vote.election_id == data.election_id
+        ).count()
+        results.append({
+            "candidate_id": c.id,
+            "candidate_name": c.name,
+            "vote_count": count
+        })
+
+    # ─── BROADCAST TO ALL CONNECTED CLIENTS ──────
+    await manager.broadcast({
+        "event": "new_vote",
+        "election_id": data.election_id,
+        "candidate_id": data.candidate_id,
+        "transaction_hash": tx_hash,
+        "results": results
+    })
+
     return vote
 
 # ─── GET RESULTS ─────────────────────────────────
