@@ -3,6 +3,11 @@ from app.database import engine
 from app import models
 from app.routers import auth, users, elections, votes
 
+
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="E-Voting API")
+
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="E-Voting API")
