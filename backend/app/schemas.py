@@ -59,3 +59,12 @@ class VoteResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ─── OTP SCHEMAS ─────────────────────────────────
+class OTPRequest(BaseModel):
+    email: EmailStr
+
+class OTPVerify(BaseModel):
+    email: EmailStr
+    otp: str

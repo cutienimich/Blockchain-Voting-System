@@ -32,3 +32,29 @@ def verify_token(token: str):
         return payload
     except JWTError:
         return None
+
+import random, string
+from datetime import datetime, timedelta
+
+# ─── OTP ─────────────────────────────────────────
+otp_store = {}  # { email: { otp, expires } }
+
+def generate_otp(email: str) -> str:
+    otp = "".join(random.choices(string.digits, k=6))
+    otp_store[email] = {
+        "otp": otp,
+        "expires": datetime.utcnow() + timedelta(minutes=10)
+    }
+    return otp
+
+def verify_otp(email: str, otp_input: str) -> bool:
+    record = otp_store.get(email)
+    if not record:
+        return False
+    if datetime.utcnow() > record["expires"]:
+        del otp_store[email]
+        return False
+    if record["otp"] != otp_input:
+        return False
+    del otp_store[email]
+    return True
